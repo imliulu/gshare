@@ -22,7 +22,7 @@ var (
 )
 
 func generateRoomID() string {
-	return fmt.Sprintf("%d", time.Now().Unix()/int64(time.Millisecond))
+	return fmt.Sprintf("%d", time.Now().UnixMicro()/int64(time.Microsecond))
 }
 
 func main() {
