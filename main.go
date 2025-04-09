@@ -29,7 +29,7 @@ func main() {
 	r := gin.Default()
 
 	// 静态文件服务
-	r.Static("/static", "./static")
+	r.Static("/uploads", "./uploads")
 
 	// API路由组
 	api := r.Group("/api")
@@ -52,7 +52,7 @@ func main() {
 
 			// 设置默认密码为 "123" 如果用户没有提供密码
 			if req.Password == "" {
-				req.Password = "123"
+				req.Password = "123456"
 			}
 
 			room := &Room{
@@ -134,13 +134,37 @@ func main() {
 
 			c.JSON(http.StatusOK, gin.H{"contents": contents})
 		})
+
+		// 清空剪贴板内容
+		api.DELETE("/rooms/:roomID/clipboard", func(c *gin.Context) {
+			roomID := c.Param("roomID")
+			roomsMutex.Lock()
+			room, exists := rooms[roomID]
+			roomsMutex.Unlock()
+
+			if !exists {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+				return
+			}
+
+			room.Mutex.Lock()
+			room.Clipboard = []string{}
+			room.Mutex.Unlock()
+
+			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content cleared!"})
+		})
 	}
 
-	r.GET("/index", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
+	// 配置404页面
+	r.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusNotFound, "404.html", gin.H{})
 	})
+
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
+	r.GET("/index", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
 	r.GET("/share/:roomID", func(c *gin.Context) {
@@ -157,10 +181,10 @@ func main() {
 		c.HTML(http.StatusOK, "share.html", gin.H{"roomID": room.ID, "password": room.Password})
 	})
 
-	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusOK, "404.html", nil)
-	})
 	r.LoadHTMLGlob("templates/*")
 
-	r.Run(":8088")
+	err := r.Run(":8088")
+	if err != nil {
+		return
+	}
 }
