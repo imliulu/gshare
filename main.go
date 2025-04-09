@@ -12,7 +12,7 @@ import (
 type Room struct {
 	ID        string
 	Password  string
-	Clipboard string
+	Clipboard []string
 	Mutex     sync.Mutex
 }
 
@@ -22,7 +22,7 @@ var (
 )
 
 func generateRoomID() string {
-	return fmt.Sprintf("%d", time.Now().UnixMicro()/int64(time.Microsecond))
+	return fmt.Sprintf("%d", time.Now().UnixNano()/int64(time.Millisecond))
 }
 
 func main() {
@@ -31,101 +31,112 @@ func main() {
 	// 静态文件服务
 	r.Static("/uploads", "./uploads")
 
-	// 创建房间
-	r.POST("/createRoom", func(c *gin.Context) {
-		var req struct {
-			Password string `json:"password"`
-		}
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+	// API路由组
+	api := r.Group("/api")
+	{
+		// 创建房间
+		api.POST("/rooms", func(c *gin.Context) {
+			var req struct {
+				Password string `json:"password"`
+			}
+			if err := c.BindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 
-		if req.Password == "" {
-			req.Password = "123456"
-		}
-		roomID := generateRoomID()
-		room := &Room{
-			ID:       roomID,
-			Password: req.Password,
-		}
+			// 设置默认密码为 "123" 如果用户没有提供密码
+			if req.Password == "" {
+				req.Password = "123"
+			}
 
-		roomsMutex.Lock()
-		rooms[roomID] = room
-		roomsMutex.Unlock()
+			roomID := generateRoomID()
+			room := &Room{
+				ID:        roomID,
+				Password:  req.Password,
+				Clipboard: []string{},
+			}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Room created", "roomID": roomID, "password": room.Password})
-	})
+			roomsMutex.Lock()
+			rooms[roomID] = room
+			roomsMutex.Unlock()
 
-	// 加入房间
-	r.POST("/joinRoom", func(c *gin.Context) {
-		var req struct {
-			ID       string `json:"id"`
-			Password string `json:"password"`
-		}
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+			c.JSON(http.StatusCreated, gin.H{"message": "Room created", "roomID": roomID, "password": room.Password})
+		})
 
-		roomsMutex.Lock()
-		room, exists := rooms[req.ID]
-		roomsMutex.Unlock()
+		// 加入房间
+		api.POST("/rooms/join", func(c *gin.Context) {
+			var req struct {
+				ID       string `json:"id"`
+				Password string `json:"password"`
+			}
+			if err := c.BindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 
-		if !exists || room.Password != req.Password {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid room ID or password"})
-			return
-		}
+			roomsMutex.Lock()
+			room, exists := rooms[req.ID]
+			roomsMutex.Unlock()
 
-		c.JSON(http.StatusOK, gin.H{"message": "Joined room", "roomID": room.ID, "password": room.Password})
-	})
+			if !exists || room.Password != req.Password {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid room ID or password"})
+				return
+			}
 
-	// 粘贴文本内容
-	r.POST("/clipboard/:roomID", func(c *gin.Context) {
-		roomID := c.Param("roomID")
-		roomsMutex.Lock()
-		room, exists := rooms[roomID]
-		roomsMutex.Unlock()
+			c.JSON(http.StatusOK, gin.H{"message": "Joined room", "roomID": room.ID, "password": room.Password})
+		})
 
-		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
-			return
-		}
+		// 粘贴文本内容
+		api.POST("/rooms/:roomID/clipboard", func(c *gin.Context) {
+			roomID := c.Param("roomID")
+			roomsMutex.Lock()
+			room, exists := rooms[roomID]
+			roomsMutex.Unlock()
 
-		var content string
-		if err := c.BindJSON(&content); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
+			if !exists {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+				return
+			}
 
-		room.Mutex.Lock()
-		room.Clipboard = content
-		room.Mutex.Unlock()
+			var content string
+			if err := c.BindJSON(&content); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Clipboard content saved!"})
-	})
+			room.Mutex.Lock()
+			room.Clipboard = append(room.Clipboard, content)
+			room.Mutex.Unlock()
 
-	// 获取剪贴板内容
-	r.GET("/clipboard/:roomID", func(c *gin.Context) {
-		roomID := c.Param("roomID")
-		roomsMutex.Lock()
-		room, exists := rooms[roomID]
-		roomsMutex.Unlock()
+			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content saved!"})
+		})
 
-		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
-			return
-		}
+		// 获取剪贴板内容
+		api.GET("/rooms/:roomID/clipboard", func(c *gin.Context) {
+			roomID := c.Param("roomID")
+			roomsMutex.Lock()
+			room, exists := rooms[roomID]
+			roomsMutex.Unlock()
 
-		room.Mutex.Lock()
-		content := room.Clipboard
-		room.Mutex.Unlock()
+			if !exists {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+				return
+			}
 
-		c.JSON(http.StatusOK, gin.H{"content": content})
-	})
+			room.Mutex.Lock()
+			contents := room.Clipboard
+			room.Mutex.Unlock()
+
+			c.JSON(http.StatusOK, gin.H{"contents": contents})
+		})
+	}
 
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
+
+	r.GET("/index", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
 	r.GET("/share/:roomID", func(c *gin.Context) {
@@ -144,8 +155,5 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 
-	err := r.Run(":8088")
-	if err != nil {
-		return
-	}
+	r.Run(":8088")
 }

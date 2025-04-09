@@ -2,18 +2,18 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>gshare</title>
+    <title>文件和剪贴板共享</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
 </head>
 <body>
 <div class="layui-container">
-    <h1>Gshare共享工具</h1>
+    <h1>文件和剪贴板共享</h1>
 
     <!-- 创建房间 -->
     <div class="layui-form-item">
         <label class="layui-form-label">创建房间</label>
         <div class="layui-input-block">
-            <input type="password" name="password" id="createRoomPassword" placeholder="请输入密码（默认为123456）" autocomplete="off" class="layui-input">
+            <input type="password" name="password" id="createRoomPassword" placeholder="请输入密码（默认为123）" autocomplete="off" class="layui-input">
             <button type="button" class="layui-btn" id="createRoomBtn">创建房间</button>
         </div>
     </div>
@@ -48,7 +48,7 @@ layui.use(['layer', 'form'], function(){
     document.getElementById('createRoomBtn').addEventListener('click', function(){
         var password = document.getElementById('createRoomPassword').value;
 
-        fetch('/createRoom', {
+        fetch('/api/rooms', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -71,7 +71,7 @@ layui.use(['layer', 'form'], function(){
         var roomID = document.getElementById('joinRoomID').value;
         var password = document.getElementById('joinRoomPassword').value;
 
-        fetch('/joinRoom', {
+        fetch('/api/rooms/join', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
