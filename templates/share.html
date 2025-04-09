@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>共享房间</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+</head>
+<body>
+<div class="layui-container">
+    <h1>共享房间</h1>
+
+    <!-- 房间信息 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">房间ID</label>
+        <div class="layui-input-block">
+            <input type="text" name="roomID" id="roomID" value="{{.roomID}}" readonly class="layui-input">
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">密码</label>
+        <div class="layui-input-block">
+            <input type="text" name="password" id="password" value="{{.password}}" readonly class="layui-input">
+        </div>
+    </div>
+
+    <!-- 粘贴文本内容 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">粘贴文本</label>
+        <div class="layui-input-block">
+            <textarea name="clipboard" id="clipboardInput" required lay-verify="required" placeholder="请输入文本内容" class="layui-textarea"></textarea>
+            <button type="button" class="layui-btn" id="pasteBtn">粘贴文本</button>
+        </div>
+    </div>
+
+    <!-- 获取剪贴板内容 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">获取文本</label>
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn" id="getClipboardBtn">获取文本</button>
+            <textarea name="clipboardOutput" id="clipboardOutput" readonly class="layui-textarea"></textarea>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
+<script>
+layui.use(['layer', 'form'], function(){
+    var layer = layui.layer;
+    var form = layui.form;
+
+    var roomID = document.getElementById('roomID').value;
+
+    // 粘贴文本内容
+    document.getElementById('pasteBtn').addEventListener('click', function(){
+        var content = document.getElementById('clipboardInput').value;
+        if(content){
+            fetch('/clipboard/' + roomID, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(content)
+            })
+            .then(response => response.json())
+            .then(data => {
+                layer.msg(data.message);
+            })
+            .catch(error => {
+                layer.msg('粘贴失败: ' + error);
+            });
+        } else {
+            layer.msg('请输入文本内容');
+        }
+    });
+
+    // 获取剪贴板内容
+    document.getElementById('getClipboardBtn').addEventListener('click', function(){
+        fetch('/clipboard/' + roomID)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('clipboardOutput').value = data.content;
+        })
+        .catch(error => {
+            layer.msg('获取失败: ' + error);
+        });
+    });
+});
+</script>
+</body>
+</html>

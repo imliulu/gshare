@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>文件和剪贴板共享</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+</head>
+<body>
+<div class="layui-container">
+    <h1>文件和剪贴板共享</h1>
+
+    <!-- 创建房间 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">创建房间</label>
+        <div class="layui-input-block">
+            <input type="text" name="roomID" id="createRoomID" required lay-verify="required" placeholder="请输入房间ID" autocomplete="off" class="layui-input">
+            <input type="password" name="password" id="createRoomPassword" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+            <button type="button" class="layui-btn" id="createRoomBtn">创建房间</button>
+        </div>
+    </div>
+
+    <!-- 加入房间 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">加入房间</label>
+        <div class="layui-input-block">
+            <input type="text" name="roomID" id="joinRoomID" required lay-verify="required" placeholder="请输入房间ID" autocomplete="off" class="layui-input">
+            <input type="password" name="password" id="joinRoomPassword" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+            <button type="button" class="layui-btn" id="joinRoomBtn">加入房间</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
+<script>
+layui.use(['layer', 'form'], function(){
+    var layer = layui.layer;
+    var form = layui.form;
+
+    // 创建房间
+    document.getElementById('createRoomBtn').addEventListener('click', function(){
+        var roomID = document.getElementById('createRoomID').value;
+        var password = document.getElementById('createRoomPassword').value;
+
+        fetch('/createRoom', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ID: roomID, Password: password})
+        })
+        .then(response => response.json())
+        .then(data => {
+            layer.msg(data.message);
+            document.getElementById('createRoomID').value = '';
+            document.getElementById('createRoomPassword').value = '';
+            window.location.href = '/share/' + data.roomID;
+        })
+        .catch(error => {
+            layer.msg('创建房间失败: ' + error);
+        });
+    });
+
+    // 加入房间
+    document.getElementById('joinRoomBtn').addEventListener('click', function(){
+        var roomID = document.getElementById('joinRoomID').value;
+        var password = document.getElementById('joinRoomPassword').value;
+
+        fetch('/joinRoom', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ID: roomID, Password: password})
+        })
+        .then(response => response.json())
+        .then(data => {
+            layer.msg(data.message);
+            document.getElementById('joinRoomID').value = '';
+            document.getElementById('joinRoomPassword').value = '';
+            window.location.href = '/share/' + data.roomID;
+        })
+        .catch(error => {
+            layer.msg('加入房间失败: ' + error);
+        });
+    });
+});
+</script>
+</body>
+</html>
