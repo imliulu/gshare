@@ -29,7 +29,7 @@ func main() {
 	r := gin.Default()
 
 	// 静态文件服务
-	r.Static("/uploads", "./uploads")
+	r.Static("/static", "./static")
 
 	// API路由组
 	api := r.Group("/api")
@@ -37,6 +37,7 @@ func main() {
 		// 创建房间
 		api.POST("/rooms", func(c *gin.Context) {
 			var req struct {
+				ID       string `json:"id"`
 				Password string `json:"password"`
 			}
 			if err := c.BindJSON(&req); err != nil {
@@ -44,23 +45,27 @@ func main() {
 				return
 			}
 
+			// 如果没有提供 roomID，则生成一个默认的时间戳作为 roomID
+			if req.ID == "" {
+				req.ID = generateRoomID()
+			}
+
 			// 设置默认密码为 "123" 如果用户没有提供密码
 			if req.Password == "" {
 				req.Password = "123"
 			}
 
-			roomID := generateRoomID()
 			room := &Room{
-				ID:        roomID,
+				ID:        req.ID,
 				Password:  req.Password,
 				Clipboard: []string{},
 			}
 
 			roomsMutex.Lock()
-			rooms[roomID] = room
+			rooms[req.ID] = room
 			roomsMutex.Unlock()
 
-			c.JSON(http.StatusCreated, gin.H{"message": "Room created", "roomID": roomID, "password": room.Password})
+			c.JSON(http.StatusCreated, gin.H{"message": "Room created", "roomID": req.ID, "password": req.Password})
 		})
 
 		// 加入房间
@@ -131,11 +136,10 @@ func main() {
 		})
 	}
 
-	r.GET("/", func(c *gin.Context) {
+	r.GET("/index", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
-
-	r.GET("/index", func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", nil)
 	})
 
@@ -153,6 +157,9 @@ func main() {
 		c.HTML(http.StatusOK, "share.html", gin.H{"roomID": room.ID, "password": room.Password})
 	})
 
+	r.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusOK, "404.html", nil)
+	})
 	r.LoadHTMLGlob("templates/*")
 
 	r.Run(":8088")

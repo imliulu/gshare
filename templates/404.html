@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>页面未找到</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+</head>
+<body>
+<div class="layui-container">
+    <h1>404 - 页面未找到</h1>
+    <p>您访问的页面不存在。</p>
+    <div class="layui-form-item">
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn" id="backToIndexBtn">返回首页</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
+<script>
+layui.use(['layer', 'form'], function(){
+    var layer = layui.layer;
+    var form = layui.form;
+
+    // 返回首页
+    document.getElementById('backToIndexBtn').addEventListener('click', function(){
+        window.location.href = '/index';
+    });
+});
+</script>
+</body>
+</html>

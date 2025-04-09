@@ -2,17 +2,34 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>文件和剪贴板共享</title>
+    <title>Gshare</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .layui-container {
+            flex: 1;
+        }
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
 <div class="layui-container">
-    <h1>文件和剪贴板共享</h1>
+    <h1>Gshare-文件共享</h1>
 
     <!-- 创建房间 -->
     <div class="layui-form-item">
         <label class="layui-form-label">创建房间</label>
         <div class="layui-input-block">
+            <input type="text" name="roomID" id="createRoomID" placeholder="请输入房间ID（可选）" autocomplete="off" class="layui-input">
             <input type="password" name="password" id="createRoomPassword" placeholder="请输入密码（默认为123）" autocomplete="off" class="layui-input">
             <button type="button" class="layui-btn" id="createRoomBtn">创建房间</button>
         </div>
@@ -38,6 +55,9 @@
     </div>
 </div>
 
+<footer>
+    developed by <a href="https://github.com/imliulu/gshare" target="_blank">LiuLu</a>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
 <script>
 layui.use(['layer', 'form'], function(){
@@ -46,18 +66,25 @@ layui.use(['layer', 'form'], function(){
 
     // 创建房间
     document.getElementById('createRoomBtn').addEventListener('click', function(){
+        var roomID = document.getElementById('createRoomID').value;
         var password = document.getElementById('createRoomPassword').value;
+
+        // 如果没有提供 roomID，则生成一个默认的时间戳作为 roomID
+        if (!roomID) {
+            roomID = generateRoomID();
+        }
 
         fetch('/api/rooms', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({password: password})
+            body: JSON.stringify({id: roomID, password: password})
         })
         .then(response => response.json())
         .then(data => {
             layer.msg(data.message);
+            document.getElementById('createRoomID').value = '';
             document.getElementById('createRoomPassword').value = '';
             window.location.href = '/share/' + data.roomID;
         })
@@ -95,6 +122,11 @@ layui.use(['layer', 'form'], function(){
         var timeStamp = Date.now();
         document.getElementById('timeStamp').value = timeStamp;
     });
+
+    // 生成房间ID
+    function generateRoomID() {
+        return Date.now().toString();
+    }
 });
 </script>
 </body>

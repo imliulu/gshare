@@ -2,12 +2,28 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>共享房间</title>
+    <title>共享剪贴板</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .layui-container {
+            flex: 1;
+        }
+        footer {
+            text-align: center;
+            padding: 10px 0;
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
 <div class="layui-container">
-    <h1>共享房间</h1>
+    <h1>共享剪贴板</h1>
 
     <!-- 返回首页按钮 -->
     <div class="layui-form-item">
@@ -42,6 +58,9 @@
         </div>
     </div>
 </div>
+<footer>
+    developed by LiuLu <a href="https://github.com/imliulu/gshare" target="_blank">GitHub</a>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
 <script>
