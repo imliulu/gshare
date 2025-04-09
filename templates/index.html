@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Gshare</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
+    <link rel="stylesheet" href="/static/css/layui.css">
     <style>
         body {
             display: flex;
@@ -19,115 +19,238 @@
             padding: 10px 0;
             background-color: #f2f2f2;
         }
+        .room-list {
+            margin-top: 20px;
+        }
+        .room-item {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .room-item:hover {
+            background-color: #e9e9e9;
+        }
+        .room-item .room-info {
+            flex: 1;
+        }
+        .room-item .room-actions {
+            display: flex;
+            align-items: center;
+        }
+        .room-item .room-actions button {
+            margin-left: 10px;
+        }
+        /* 加入房间按钮的样式 */
+        .room-item .room-actions .layui-btn-primary {
+            background-color: #5FB878; /* 更明亮的绿色 */
+            color: white; /* 文字颜色改为白色 */
+            border: none; /* 移除边框 */
+        }
+        /* 在线房间为空时的提示样式 */
+        .no-rooms {
+            display: flex; /* 使用 Flexbox 布局 */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            height: 100px; /* 设置高度以确保有足够的空间 */
+            text-align: center;
+            font-size: 14px;
+            color: #666; /* 文字颜色改为深灰色 */
+            background-color: #f9f9f9; /* 背景色改为浅灰色 */
+            border: 1px solid #ccc; /* 添加边框 */
+            border-radius: 5px; /* 圆角效果 */
+            margin-top: 20px; /* 上边距 */
+        }
     </style>
 </head>
 <body>
 <div class="layui-container">
-    <h1>Gshare-文件共享</h1>
+    <h1>Gshare-共享</h1>
 
     <!-- 创建房间 -->
     <div class="layui-form-item">
         <label class="layui-form-label">创建房间</label>
         <div class="layui-input-block">
-            <input type="text" name="roomID" id="createRoomID" placeholder="请输入房间ID（可选）" autocomplete="off" class="layui-input">
-            <input type="password" name="password" id="createRoomPassword" placeholder="请输入房间密码（可选）" autocomplete="off" class="layui-input">
+            <input type="text" name="roomID" id="createRoomID" placeholder="请输入房间ID（可选）" autocomplete="off"
+                   class="layui-input">
             <button type="button" class="layui-btn" id="createRoomBtn">创建房间</button>
         </div>
     </div>
 
-    <!-- 加入房间 -->
+    <!-- 显示所有在线房间 -->
     <div class="layui-form-item">
-        <label class="layui-form-label">加入房间</label>
-        <div class="layui-input-block">
-            <input type="text" name="roomID" id="joinRoomID" required lay-verify="required" placeholder="请输入房间ID" autocomplete="off" class="layui-input">
-            <input type="password" name="password" id="joinRoomPassword" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
-            <button type="button" class="layui-btn" id="joinRoomBtn">加入房间</button>
-        </div>
-    </div>
-
-    <!-- 获取当前时间戳 -->
-    <div class="layui-form-item">
-        <label class="layui-form-label">获取时间戳</label>
-        <div class="layui-input-block">
-            <button type="button" class="layui-btn" id="getTimeStampBtn">获取时间戳</button>
-            <input type="text" name="timeStamp" id="timeStamp" readonly class="layui-input">
-        </div>
+        <label class="layui-form-label">在线房间</label>
+        <div class="layui-input-block" id="onlineRooms"></div>
     </div>
 </div>
 
 <footer>
     developed by <a href="https://github.com/imliulu/gshare" target="_blank">LiuLu</a>
 </footer>
-<script src="https://cdn.jsdelivr.net/npm/layui-src/dist/layui.js"></script>
+
+<script src="/static/layui.js"></script>
 <script>
-layui.use(['layer', 'form'], function(){
-    var layer = layui.layer;
-    var form = layui.form;
+    layui.use(['layer', 'form'], function () {
+        var layer = layui.layer;
+        var form = layui.form;
 
-    // 创建房间
-    document.getElementById('createRoomBtn').addEventListener('click', function(){
-        var roomID = document.getElementById('createRoomID').value;
-        var password = document.getElementById('createRoomPassword').value;
+        // 创建房间
+        document.getElementById('createRoomBtn').addEventListener('click', function () {
+            var roomID = document.getElementById('createRoomID').value;
 
-        // 如果没有提供 roomID，则生成一个默认的时间戳作为 roomID
-        if (!roomID) {
-            roomID = generateRoomID();
+            // 如果没有提供 roomID，则生成一个默认的时间戳作为 roomID
+            if (!roomID) {
+                roomID = generateRoomID();
+            }
+
+            fetch('/api/rooms', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id: roomID }) // 移除密码字段
+            })
+                .then(response => response.json())
+                .then(data => {
+                    layer.msg(data.message);
+                    document.getElementById('createRoomID').value = '';
+                    window.location.href = '/share/' + roomID; // 直接跳转到房间页面
+                })
+                .catch(error => {
+                    layer.msg('创建房间失败: ' + error);
+                });
+        });
+
+        // 生成房间ID
+        function generateRoomID() {
+            return Date.now().toString();
         }
 
-        fetch('/api/rooms', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({id: roomID, password: password})
-        })
-        .then(response => response.json())
-        .then(data => {
-            layer.msg(data.message);
-            document.getElementById('createRoomID').value = '';
-            document.getElementById('createRoomPassword').value = '';
-            window.location.href = '/share/' + data.roomID;
-        })
-        .catch(error => {
-            layer.msg('创建房间失败: ' + error);
-        });
+        // 获取并显示所有在线房间
+        function fetchOnlineRooms() {
+            fetch('/api/rooms')
+                .then(response => response.json())
+                .then(data => {
+                    var onlineRoomsDiv = document.getElementById('onlineRooms');
+                    onlineRoomsDiv.innerHTML = ''; // 清空现有内容
+
+                    if (data.rooms.length === 0) {
+                        // 如果没有在线房间，显示提示信息
+                        var noRoomsMessage = document.createElement('div');
+                        noRoomsMessage.className = 'no-rooms';
+                        noRoomsMessage.textContent = '当前无在线的房间';
+                        onlineRoomsDiv.appendChild(noRoomsMessage);
+                    } else {
+                        // 如果有在线房间，动态生成房间项
+                        data.rooms.forEach(function (room) {
+                            var roomElement = document.createElement('div');
+                            roomElement.className = 'room-item';
+
+                            var roomInfo = document.createElement('div');
+                            roomInfo.className = 'room-info';
+                            roomInfo.textContent = '房间ID: ' + room.ID + ' (创建于: ' + room.CreatedAt + ')';
+
+                            var roomActions = document.createElement('div');
+                            roomActions.className = 'room-actions';
+
+                            var joinButton = document.createElement('button');
+                            joinButton.className = 'layui-btn layui-btn-primary'; // 使用新的样式
+                            joinButton.textContent = '加入';
+                            joinButton.onclick = function () {
+                                joinRoom(room.ID);
+                            };
+
+                            var deleteButton = document.createElement('button');
+                            deleteButton.className = 'layui-btn layui-btn-danger';
+                            deleteButton.textContent = '删除';
+                            deleteButton.onclick = function () {
+                                deleteRoom(room.ID);
+                            };
+
+                            roomActions.appendChild(joinButton);
+                            roomActions.appendChild(deleteButton);
+
+                            roomElement.appendChild(roomInfo);
+                            roomElement.appendChild(roomActions);
+
+                            onlineRoomsDiv.appendChild(roomElement);
+                        });
+                    }
+                })
+                .catch(error => {
+                    layer.msg('获取在线房间失败: ' + error);
+                });
+        }
+
+        // 弹出对话框要求用户输入密码
+        function joinRoom(roomID) {
+            layer.prompt({
+                title: '请输入房间密码',
+                formType: 1,
+                closeBtn: 0
+            }, function (password, index) {
+                layer.close(index);
+
+                fetch('/api/rooms/join', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ID: roomID, Password: password })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            layer.msg(data.error);
+                        } else {
+                            layer.msg(data.message);
+                            window.location.href = '/share/' + data.roomID;
+                        }
+                    })
+                    .catch(error => {
+                        layer.msg('加入房间失败: ' + error);
+                    });
+            });
+        }
+
+        // 删除房间
+        function deleteRoom(roomID) {
+            layer.prompt({
+                title: '请输入房间密码',
+                formType: 1,
+                closeBtn: 0
+            }, function (password, index) {
+                layer.close(index);
+
+                fetch('/api/rooms/' + roomID, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password: password })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            layer.msg(data.error);
+                        } else {
+                            layer.msg(data.message);
+                            fetchOnlineRooms(); // 刷新在线房间列表
+                        }
+                    })
+                    .catch(error => {
+                        layer.msg('删除房间失败: ' + error);
+                    });
+            });
+        }
+
+        // 初始获取并显示在线房间
+        fetchOnlineRooms();
     });
-
-    // 加入房间
-    document.getElementById('joinRoomBtn').addEventListener('click', function(){
-        var roomID = document.getElementById('joinRoomID').value;
-        var password = document.getElementById('joinRoomPassword').value;
-
-        fetch('/api/rooms/join', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ID: roomID, Password: password})
-        })
-        .then(response => response.json())
-        .then(data => {
-            layer.msg(data.message);
-            document.getElementById('joinRoomID').value = '';
-            document.getElementById('joinRoomPassword').value = '';
-            window.location.href = '/share/' + data.roomID;
-        })
-        .catch(error => {
-            layer.msg('加入房间失败: ' + error);
-        });
-    });
-
-    // 获取当前时间戳
-    document.getElementById('getTimeStampBtn').addEventListener('click', function(){
-        var timeStamp = Date.now();
-        document.getElementById('timeStamp').value = timeStamp;
-    });
-
-    // 生成房间ID
-    function generateRoomID() {
-        return Date.now().toString();
-    }
-});
 </script>
 </body>
 </html>

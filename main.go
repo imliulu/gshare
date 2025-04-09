@@ -13,6 +13,7 @@ type Room struct {
 	ID        string
 	Password  string
 	Clipboard []string
+	CreatedAt time.Time
 	Mutex     sync.Mutex
 }
 
@@ -29,7 +30,7 @@ func main() {
 	r := gin.Default()
 
 	// 静态文件服务
-	r.Static("/uploads", "./uploads")
+	r.Static("/static", "./static")
 
 	// API路由组
 	api := r.Group("/api")
@@ -50,7 +51,7 @@ func main() {
 				req.ID = generateRoomID()
 			}
 
-			// 设置默认密码为 "123" 如果用户没有提供密码
+			// 设置默认密码为 "123456" 如果用户没有提供密码
 			if req.Password == "" {
 				req.Password = "123456"
 			}
@@ -59,6 +60,7 @@ func main() {
 				ID:        req.ID,
 				Password:  req.Password,
 				Clipboard: []string{},
+				CreatedAt: time.Now(),
 			}
 
 			roomsMutex.Lock()
@@ -152,6 +154,49 @@ func main() {
 			room.Mutex.Unlock()
 
 			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content cleared!"})
+		})
+
+		// 删除房间
+		api.DELETE("/rooms/:roomID", func(c *gin.Context) {
+			roomID := c.Param("roomID")
+			var req struct {
+				Password string `json:"password"`
+			}
+			if err := c.BindJSON(&req); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+
+			roomsMutex.Lock()
+			room, exists := rooms[roomID]
+			roomsMutex.Unlock()
+
+			if !exists || room.Password != req.Password {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid room ID or password"})
+				return
+			}
+
+			roomsMutex.Lock()
+			delete(rooms, roomID)
+			roomsMutex.Unlock()
+
+			c.JSON(http.StatusOK, gin.H{"message": "Room deleted"})
+		})
+
+		// 获取所有在线房间
+		api.GET("/rooms", func(c *gin.Context) {
+			roomsMutex.Lock()
+			defer roomsMutex.Unlock()
+
+			roomList := make([]map[string]interface{}, 0)
+			for _, room := range rooms {
+				roomList = append(roomList, map[string]interface{}{
+					"ID":        room.ID,
+					"CreatedAt": room.CreatedAt.Format("2006-01-02 15:04:05"),
+				})
+			}
+
+			c.JSON(http.StatusOK, gin.H{"rooms": roomList})
 		})
 	}
 
