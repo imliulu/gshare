@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,6 +21,10 @@ var (
 	roomsMutex sync.Mutex
 )
 
+func generateRoomID() string {
+	return fmt.Sprintf("%d", time.Now().Unix()/int64(time.Millisecond))
+}
+
 func main() {
 	r := gin.Default()
 
@@ -27,17 +33,25 @@ func main() {
 
 	// 创建房间
 	r.POST("/createRoom", func(c *gin.Context) {
-		var room Room
-		if err := c.BindJSON(&room); err != nil {
+		var req struct {
+			Password string `json:"password"`
+		}
+		if err := c.BindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
+		roomID := generateRoomID()
+		room := &Room{
+			ID:       roomID,
+			Password: req.Password,
+		}
+
 		roomsMutex.Lock()
-		rooms[room.ID] = &room
+		rooms[roomID] = room
 		roomsMutex.Unlock()
 
-		c.JSON(http.StatusOK, gin.H{"message": "Room created", "roomID": room.ID, "password": room.Password})
+		c.JSON(http.StatusOK, gin.H{"message": "Room created", "roomID": roomID, "password": room.Password})
 	})
 
 	// 加入房间
@@ -108,7 +122,7 @@ func main() {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.File("./templates/index.html")
+		c.File("./index.html")
 	})
 
 	r.GET("/share/:roomID", func(c *gin.Context) {
