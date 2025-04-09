@@ -41,6 +41,9 @@ func main() {
 			return
 		}
 
+		if req.Password == "" {
+			req.Password = "123456"
+		}
 		roomID := generateRoomID()
 		room := &Room{
 			ID:       roomID,
@@ -122,7 +125,7 @@ func main() {
 	})
 
 	r.GET("/", func(c *gin.Context) {
-		c.File("./index.html")
+		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
 	r.GET("/share/:roomID", func(c *gin.Context) {
@@ -141,5 +144,8 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 
-	r.Run(":8088")
+	err := r.Run(":8088")
+	if err != nil {
+		return
+	}
 }

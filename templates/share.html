@@ -9,18 +9,18 @@
 <div class="layui-container">
     <h1>共享房间</h1>
 
-    <!-- 房间信息 -->
+    <!-- 返回首页按钮 -->
     <div class="layui-form-item">
-        <label class="layui-form-label">房间ID</label>
         <div class="layui-input-block">
-            <input type="text" name="roomID" id="roomID" value="{{.roomID}}" readonly class="layui-input">
+            <button type="button" class="layui-btn" id="backToIndexBtn">返回首页</button>
         </div>
     </div>
 
+    <!-- 房间信息 -->
     <div class="layui-form-item">
-        <label class="layui-form-label">密码</label>
+        <label class="layui-form-label">房间信息</label>
         <div class="layui-input-block">
-            <input type="text" name="password" id="password" value="{{.password}}" readonly class="layui-input">
+            <input type="text" name="roomInfo" id="roomInfo" value="房间ID: {{.roomID}}, 密码: {{.password}}" readonly class="layui-input">
         </div>
     </div>
 
@@ -49,7 +49,12 @@ layui.use(['layer', 'form'], function(){
     var layer = layui.layer;
     var form = layui.form;
 
-    var roomID = document.getElementById('roomID').value;
+    var roomID = document.getElementById('roomInfo').value.split(',')[0].split(':')[1].trim();
+
+    // 返回首页
+    document.getElementById('backToIndexBtn').addEventListener('click', function(){
+        window.location.href = '/';
+    });
 
     // 粘贴文本内容
     document.getElementById('pasteBtn').addEventListener('click', function(){

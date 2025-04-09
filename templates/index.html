@@ -2,18 +2,18 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>文件和剪贴板共享</title>
+    <title>gshare</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/layui-src/dist/css/layui.css">
 </head>
 <body>
 <div class="layui-container">
-    <h1>文件和剪贴板共享</h1>
+    <h1>Gshare共享工具</h1>
 
     <!-- 创建房间 -->
     <div class="layui-form-item">
         <label class="layui-form-label">创建房间</label>
         <div class="layui-input-block">
-            <input type="password" name="password" id="createRoomPassword" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+            <input type="password" name="password" id="createRoomPassword" placeholder="请输入密码（默认为123456）" autocomplete="off" class="layui-input">
             <button type="button" class="layui-btn" id="createRoomBtn">创建房间</button>
         </div>
     </div>
@@ -25,6 +25,15 @@
             <input type="text" name="roomID" id="joinRoomID" required lay-verify="required" placeholder="请输入房间ID" autocomplete="off" class="layui-input">
             <input type="password" name="password" id="joinRoomPassword" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
             <button type="button" class="layui-btn" id="joinRoomBtn">加入房间</button>
+        </div>
+    </div>
+
+    <!-- 获取当前时间戳 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">获取时间戳</label>
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn" id="getTimeStampBtn">获取时间戳</button>
+            <input type="text" name="timeStamp" id="timeStamp" readonly class="layui-input">
         </div>
     </div>
 </div>
@@ -79,6 +88,12 @@ layui.use(['layer', 'form'], function(){
         .catch(error => {
             layer.msg('加入房间失败: ' + error);
         });
+    });
+
+    // 获取当前时间戳
+    document.getElementById('getTimeStampBtn').addEventListener('click', function(){
+        var timeStamp = Date.now();
+        document.getElementById('timeStamp').value = timeStamp;
     });
 });
 </script>
