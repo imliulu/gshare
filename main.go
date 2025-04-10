@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"gshare/middleware"
+	"gshare/services"
 	"net/http"
 	"sync"
 	"time"
@@ -29,6 +31,8 @@ func generateRoomID() string {
 func main() {
 	r := gin.Default()
 
+	// 配置 CORS 中间件
+	r.Use(middleware.Cros())
 	// 静态文件服务
 	r.Static("/static", "./static")
 
@@ -104,15 +108,18 @@ func main() {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
 				return
 			}
+			var req struct {
+				Content string `json:"content"`
+			}
 
-			var content string
-			if err := c.BindJSON(&content); err != nil {
+			if err := c.BindJSON(&req); err != nil {
+				fmt.Println("Error binding JSON:", err)
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 
 			room.Mutex.Lock()
-			room.Clipboard = append(room.Clipboard, content)
+			room.Clipboard = append(room.Clipboard, req.Content)
 			room.Mutex.Unlock()
 
 			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content saved!"})
@@ -198,6 +205,10 @@ func main() {
 
 			c.JSON(http.StatusOK, gin.H{"rooms": roomList})
 		})
+
+		// 文件上传逻辑
+		api.POST("/rooms/:roomID/upload", services.UploadFile)
+		api.GET("/rooms/:roomID/files", services.ListFiles)
 	}
 
 	// 配置404页面

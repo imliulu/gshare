@@ -1,0 +1,224 @@
+<template>
+  <div class="app-container">
+    <h1>共享剪贴板</h1>
+    <el-button type="primary" @click="backToIndex">返回首页</el-button>
+    <el-form :model="form" label-width="100px">
+      <el-form-item label="房间信息">
+        <el-input v-model="displayRoomInfo" readonly></el-input>
+      </el-form-item>
+    </el-form>
+    <el-tabs v-model="activeTab">
+      <el-tab-pane label="剪贴板共享" name="clipboard">
+        <el-form :model="clipboardForm" label-width="100px">
+          <el-form-item label="粘贴文本">
+            <el-input type="textarea" v-model="clipboardForm.content" placeholder="请输入文本内容"></el-input>
+            <el-button type="primary" @click="pasteContent">粘贴文本</el-button>
+          </el-form-item>
+          <el-form-item label="获取文本">
+            <el-button type="primary" @click="getClipboardContents">获取文本</el-button>
+            <div id="clipboardContents" class="clipboard-contents">
+              <div v-for="(content, index) in clipboardContents" :key="index">{{ index + 1 }}. {{ content }}</div>
+            </div>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="danger" @click="clearClipboard">清空剪贴板内容</el-button>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+      <el-tab-pane label="文件共享" name="files">
+        <el-form :model="fileForm" label-width="100px">
+          <el-form-item label="上传文件">
+            <el-upload
+              class="upload-demo"
+              :action="`${apiUrl}/rooms/${roomID}/upload`"
+              :on-change="handleChange"
+              :file-list="fileList"
+              :auto-upload="false"
+              :data="uploadData"
+              ref="upload">
+              <el-button slot="trigger" type="primary">选取文件</el-button>
+              <el-button type="success" @click="submitUpload">上传到服务器</el-button>
+            </el-upload>
+          </el-form-item>
+          <el-form-item label="文件列表">
+            <div id="fileList" class="file-list">
+              <div v-for="file in files" :key="file.name" class="file-item">
+                <div>{{ file.name }}</div>
+                <img v-if="file.isImage" :src="file.url" class="file-preview" @click="previewImage(file.url)" />
+                <el-button type="primary" @click="downloadFile(file.url, file.name)">下载</el-button>
+              </div>
+            </div>
+          </el-form-item>
+        </el-form>
+      </el-tab-pane>
+    </el-tabs>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'SharePage',
+  data() {
+    return {
+      form: {
+        roomID: '',
+        password: ''
+      },
+      activeTab: 'clipboard',
+      clipboardForm: {
+        content: ''
+      },
+      clipboardContents: [],
+      fileForm: {},
+      fileList: [],
+      files: []
+    }
+  },
+  created() {
+    this.form.roomID = this.$route.params.roomID
+    this.form.password = this.$route.query.password || '123456' // 从路由参数中获取密码
+    this.getClipboardContents()
+    this.fetchFiles()
+  },
+  computed: {
+    apiUrl() {
+      return process.env.VUE_APP_API_URL
+    },
+    uploadData() {
+      return { roomID: this.form.roomID }
+    },
+    displayRoomInfo() {
+      return `房间ID: ${this.form.roomID}, 密码: ${this.form.password}`
+    }
+  },
+  methods: {
+    backToIndex() {
+      this.$router.push('/')
+    },
+    pasteContent() {
+      if (this.clipboardForm.content) {
+        const payload = { content: this.clipboardForm.content.toString() };
+        this.$api.post(`/rooms/${this.form.roomID}/clipboard`, payload, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(response => {
+            this.$message.success(response.data.message);
+            this.clipboardForm.content = '';
+            this.getClipboardContents();
+          })
+          .catch(error => {
+            this.$message.error('粘贴失败: ' + error.message);
+          });
+      } else {
+        this.$message.error('请输入文本内容');
+      }
+    },
+    getClipboardContents() {
+      this.$api.get(`/rooms/${this.form.roomID}/clipboard`)
+        .then(response => {
+          this.clipboardContents = response.data.contents;
+        })
+        .catch(error => {
+          this.$message.error('获取失败: ' + error.message);
+        });
+    },
+    clearClipboard() {
+      this.$api.delete(`/rooms/${this.form.roomID}/clipboard`)
+        .then(response => {
+          this.$message.success(response.data.message);
+          this.getClipboardContents();
+        })
+        .catch(error => {
+          this.$message.error('清空失败: ' + error.message);
+        });
+    },
+    handleChange(file, fileList) {
+      this.fileList = fileList;
+    },
+    submitUpload() {
+      const formData = new FormData();
+      this.fileList.forEach(file => {
+        formData.append('file', file.raw);
+      });
+      this.$api.post(`/rooms/${this.form.roomID}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+        .then(response => {
+          console.log(response);
+          this.$message.success('文件上传成功');
+          this.fetchFiles();
+          this.$refs.upload.clearFiles();
+        })
+        .catch(error => {
+          this.$message.error('上传失败: ' + error.message);
+        });
+    },
+    fetchFiles() {
+      this.$api.get(`/rooms/${this.form.roomID}/files`)
+        .then(response => {
+          this.files = response.data.files.map(file => ({
+            ...file,
+            url: `http://10.20.10.241:8088${file.url}`
+          }));
+          console.log(this.files); // 添加调试信息
+        })
+        .catch(error => {
+          this.$message.error('获取文件列表失败: ' + error.message);
+        });
+    },
+    previewImage(url) {
+      this.$alert(`<img src="${url}" style="width: 100%; height: auto;" />`, '预览', {
+        dangerouslyUseHTMLString: true,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: '关闭',
+        callback: action => {
+          if (action === 'cancel') {
+            // 可以在这里添加关闭后的处理逻辑
+          }
+        }
+      });
+    },
+    downloadFile(url, name) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+}
+</script>
+
+<style scoped>
+.app-container {
+  padding: 20px;
+}
+.clipboard-contents {
+  height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.file-list {
+  display: flex;
+  flex-direction: column;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.file-preview {
+  width: 50px;
+  height: 50px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+</style>

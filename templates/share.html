@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="utf-8">
 <head>
     <meta charset="utf-8">
     <title>共享剪贴板</title>
@@ -18,6 +18,44 @@
             text-align: center;
             padding: 10px 0;
             background-color: #f2f2f2;
+        }
+        .layui-tab-content {
+            padding: 20px 0;
+        }
+        .preview-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .file-preview {
+            max-width: 150px;
+            height: auto;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 150px;
+            height: 150px;
+            object-fit: cover; /* 保持比例裁剪 */
+            border-radius: 4px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .layui-layer-shade {
+            position: fixed !important;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+        }
+        .layui-layer {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            margin: 0 !important;
         }
     </style>
 </head>
@@ -40,114 +78,246 @@
         </div>
     </div>
 
-    <!-- 粘贴文本内容 -->
-    <div class="layui-form-item">
-        <label class="layui-form-label">粘贴文本</label>
-        <div class="layui-input-block">
-            <textarea name="clipboard" id="clipboardInput" required lay-verify="required" placeholder="请输入文本内容" class="layui-textarea"></textarea>
-            <button type="button" class="layui-btn" id="pasteBtn">粘贴文本</button>
-        </div>
-    </div>
+    <!-- 新增Tab容器 -->
+    <div class="layui-tab layui-tab-brief" lay-filter="roomTab">
+        <ul class="layui-tab-title">
+            <li class="layui-this">剪贴板共享</li>
+            <li>文件共享</li>
+        </ul>
+        <div class="layui-tab-content">
+            <!-- 剪贴板内容（Tab1） -->
+            <div class="layui-tab-item layui-show">
+                <!-- 粘贴文本内容 -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">粘贴文本</label>
+                    <div class="layui-input-block">
+                        <textarea name="clipboard" id="clipboardInput" required lay-verify="required" placeholder="请输入文本内容" class="layui-textarea"></textarea>
+                        <button type="button" class="layui-btn" id="pasteBtn">粘贴文本</button>
+                    </div>
+                </div>
 
-    <!-- 获取剪贴板内容 -->
-    <div class="layui-form-item">
-        <label class="layui-form-label">获取文本</label>
-        <div class="layui-input-block">
-            <button type="button" class="layui-btn" id="getClipboardBtn">获取文本</button>
-            <div id="clipboardContents" class="layui-textarea" style="height: 200px; overflow-y: auto;"></div>
-        </div>
-    </div>
+                <!-- 获取剪贴板内容 -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">获取文本</label>
+                    <div class="layui-input-block">
+                        <button type="button" class="layui-btn" id="getClipboardBtn">获取文本</button>
+                        <div id="clipboardContents" class="layui-textarea" style="height: 200px; overflow-y: auto;"></div>
+                    </div>
+                </div>
 
-    <!-- 清空剪贴板内容 -->
-    <div class="layui-form-item">
-        <div class="layui-input-block">
-            <button type="button" class="layui-btn layui-btn-danger" id="clearClipboardBtn">清空剪贴板内容</button>
+                <!-- 清空剪贴板内容 -->
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button type="button" class="layui-btn layui-btn-danger" id="clearClipboardBtn">清空剪贴板内容</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文件内容（Tab2） -->
+            <div class="layui-tab-item">
+                <!-- 上传区域 -->
+                <div class="layui-form-item">
+                    <label class="layui-form-label">上传文件</label>
+                    <div class="layui-input-block">
+                        <input type="file" name="file" id="uploadFile" class="layui-upload">
+                        <button type="button" class="layui-btn" id="uploadBtn">上传</button>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">文件列表</label>
+                    <div class="layui-input-block" id="fileList"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
 <footer>
     developed by LiuLu <a href="https://github.com/imliulu/gshare" target="_blank">GitHub</a>
 </footer>
 
 <script src="/static/layui.js"></script>
 <script>
-layui.use(['layer', 'form'], function(){
-    var layer = layui.layer;
-    var form = layui.form;
+    layui.use(['layer', 'form', 'element'], function() {
+        const layer = layui.layer;
+        const form = layui.form;
+        const element = layui.element; // 初始化Tab组件
 
-    var roomID = document.getElementById('roomInfo').value.split(',')[0].split(':')[1].trim();
+        // 获取房间ID
+        const roomID = document.getElementById('roomInfo').value.split(',')[0].split(':')[1].trim();
 
-    // 返回首页
-    document.getElementById('backToIndexBtn').addEventListener('click', function(){
-        window.location.href = '/';
-    });
+        // 返回首页
+        document.getElementById('backToIndexBtn').addEventListener('click', () => {
+            window.location.href = '/';
+        });
 
-    // 粘贴文本内容
-    document.getElementById('pasteBtn').addEventListener('click', function(){
-        var content = document.getElementById('clipboardInput').value;
-        if(content){
-            fetch('/api/rooms/' + roomID + '/clipboard', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(content)
-            })
+        // 粘贴文本内容
+        document.getElementById('pasteBtn').addEventListener('click', () => {
+            const content = document.getElementById('clipboardInput').value;
+            if (content) {
+                fetch(`/api/rooms/${roomID}/clipboard`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(content)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    layer.msg(data.message);
+                    document.getElementById('clipboardInput').value = '';
+                    fetchClipboardContents();
+                })
+                .catch(error => {
+                    layer.msg('粘贴失败: ' + error);
+                });
+            } else {
+                layer.msg('请输入文本内容');
+            }
+        });
+
+        // 获取剪贴板内容
+        document.getElementById('getClipboardBtn').addEventListener('click', fetchClipboardContents);
+
+        // 清空剪贴板内容
+        document.getElementById('clearClipboardBtn').addEventListener('click', () => {
+            fetch(`/api/rooms/${roomID}/clipboard`, { method: 'DELETE' })
             .then(response => response.json())
             .then(data => {
                 layer.msg(data.message);
-                document.getElementById('clipboardInput').value = '';
                 fetchClipboardContents();
             })
             .catch(error => {
-                layer.msg('粘贴失败: ' + error);
+                layer.msg('清空失败: ' + error);
             });
-        } else {
-            layer.msg('请输入文本内容');
+        });
+
+        // 获取并显示剪贴板内容
+        function fetchClipboardContents() {
+            fetch(`/api/rooms/${roomID}/clipboard`)
+            .then(response => response.json())
+            .then(data => {
+                const contentsDiv = document.getElementById('clipboardContents');
+                contentsDiv.innerHTML = '';
+                data.contents.forEach((content, index) => {
+                    const contentElement = document.createElement('div');
+                    contentElement.textContent = (index + 1) + ". " + content;
+                    contentsDiv.appendChild(contentElement);
+                });
+            })
+            .catch(error => {
+                layer.msg('获取失败: ' + error);
+            });
         }
-    });
 
-    // 获取剪贴板内容
-    document.getElementById('getClipboardBtn').addEventListener('click', function(){
+        // 初始获取剪贴板内容
         fetchClipboardContents();
-    });
 
-    // 清空剪贴板内容
-    document.getElementById('clearClipboardBtn').addEventListener('click', function(){
-        fetch('/api/rooms/' + roomID + '/clipboard', {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            layer.msg(data.message);
-            fetchClipboardContents();
-        })
-        .catch(error => {
-            layer.msg('清空失败: ' + error);
-        });
-    });
+        // 文件上传功能
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            const fileInput = document.getElementById('uploadFile');
+            const files = fileInput.files;
+            if (!files || files.length === 0) {
+                layer.msg('请选择文件');
+                return;
+            }
 
-    // 获取并显示剪贴板内容
-    function fetchClipboardContents() {
-        fetch('/api/rooms/' + roomID + '/clipboard')
-        .then(response => response.json())
-        .then(data => {
-            var contentsDiv = document.getElementById('clipboardContents');
-            contentsDiv.innerHTML = '';
-            data.contents.forEach(function(content, index) {
-                var contentElement = document.createElement('div');
-                contentElement.textContent = (index + 1) + ". " + content;
-                contentsDiv.appendChild(contentElement);
+            const formData = new FormData();
+            formData.append('file', files[0]);
+
+            fetch(`/api/rooms/${roomID}/upload`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                layer.msg('文件上传成功');
+                fetchFiles();
+                fileInput.value = '';
+            })
+            .catch(error => {
+                layer.msg('上传失败: ' + error);
             });
-        })
-        .catch(error => {
-            layer.msg('获取失败: ' + error);
         });
-    }
 
-    // 初始获取剪贴板内容
-    fetchClipboardContents();
-});
+        // 获取并显示文件列表
+        function fetchFiles() {
+            fetch(`/api/rooms/${roomID}/files`)
+            .then(response => response.json())
+            .then(data => {
+                const fileListDiv = document.getElementById('fileList');
+                fileListDiv.innerHTML = '';
+                data.files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+
+                    const fileName = document.createElement('div');
+                    fileName.textContent = file.name;
+                    fileItem.appendChild(fileName);
+
+                    if (file.isImage) {
+                        const img = document.createElement('img');
+                        img.src = file.url;
+                        img.className = 'file-preview';
+                        img.onclick = () => {
+                            layer.open({
+                                type: 1,
+                                content: `<div class="preview-container">
+                                            <img src="${file.url}" style="width: auto; height: auto; max-width: none; max-height: none;">
+                                          </div>`,
+                                shadeClose: true,
+                                area: ['auto', 'auto'],
+                                success: function(layero) {
+                                    const imgElement = layero.find('img')[0];
+                                    const container = layero.find('.preview-container')[0];
+
+                                    imgElement.onload = () => {
+                                        const imgWidth = imgElement.naturalWidth;
+                                        const imgHeight = imgElement.naturalHeight;
+
+                                        // 计算 50% 缩放后的尺寸
+                                        const scaledWidth = imgWidth * 0.5;
+                                        const scaledHeight = imgHeight * 0.5;
+
+                                        // 设置容器和图片尺寸
+                                        container.style.width = `${scaledWidth}px`;
+                                        container.style.height = `${scaledHeight}px`;
+                                        imgElement.style.width = `${scaledWidth}px`;
+                                        imgElement.style.height = `${scaledHeight}px`;
+
+                                        // 弹窗居中定位
+                                        layero.css({
+                                            position: 'fixed',
+                                            left: '50%',
+                                            top: '50%',
+                                            transform: 'translate(-50%, -50%)',
+                                            marginLeft: 0,
+                                            marginTop: 0
+                                        });
+                                    };
+                                }
+                            });
+                        };
+                        fileItem.appendChild(img);
+                    }
+
+                    // 下载按钮
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = file.url;
+                    downloadLink.className = 'layui-btn layui-btn-primary';
+                    downloadLink.textContent = '下载';
+                    downloadLink.download = file.name;
+                    fileItem.appendChild(downloadLink);
+
+                    fileListDiv.appendChild(fileItem);
+                });
+            })
+            .catch(error => {
+                layer.msg('获取文件列表失败: ' + error);
+            });
+        }
+
+        // 页面加载时初始化文件列表
+        fetchFiles();
+    });
 </script>
 </body>
 </html>

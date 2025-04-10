@@ -27,4 +27,4 @@ go.work.sum
 
 # build file
 .gshare
-
+static/uploads
