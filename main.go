@@ -213,31 +213,8 @@ func main() {
 
 	// 配置404页面
 	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "404.html", gin.H{})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Page not found"})
 	})
-
-	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
-	})
-	r.GET("/index", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{})
-	})
-
-	r.GET("/share/:roomID", func(c *gin.Context) {
-		roomID := c.Param("roomID")
-		roomsMutex.Lock()
-		room, exists := rooms[roomID]
-		roomsMutex.Unlock()
-
-		if !exists {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
-			return
-		}
-
-		c.HTML(http.StatusOK, "share.html", gin.H{"roomID": room.ID, "password": room.Password})
-	})
-
-	r.LoadHTMLGlob("templates/*")
 
 	err := r.Run(":8088")
 	if err != nil {
