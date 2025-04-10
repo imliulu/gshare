@@ -1,7 +1,8 @@
 <template>
   <div class="app-container">
-    <h1>Local Transfer --  房间管理</h1>
-    <el-form :model="form" label-width="100px">
+    <h1>AirTransfer--房间管理</h1>
+
+    <el-form :label-position="'top'" :model="form" label-width="100px">
       <el-form-item label="创建房间">
         <el-input v-model="form.roomID" placeholder="请输入房间ID（可选）"></el-input>
         <el-input v-model="form.password" placeholder="请输入房间密码（可选）"></el-input>
@@ -11,6 +12,7 @@
         <div v-if="rooms.length === 0" class="no-rooms">当前无在线的房间</div>
         <div v-else>
           <div v-for="room in rooms" :key="room.ID" class="room-item">
+<!--            <div class="room-info">房间ID: {{ room.ID }} (创建于: {{ room.CreatedAt }})</div>-->
             <div class="room-info">房间ID: {{ room.ID }} (创建于: {{ room.CreatedAt }})</div>
             <div class="room-actions">
               <el-button type="primary" @click="joinRoom(room.ID)">加入</el-button>
@@ -109,7 +111,10 @@ export default {
 <style scoped>
 .app-container {
   padding: 20px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
+
 .room-item {
   display: flex;
   justify-content: space-between;
@@ -119,9 +124,11 @@ export default {
   margin-bottom: 5px;
   background-color: #f9f9f9;
 }
+
 .room-item:hover {
   background-color: #e9e9e9;
 }
+
 .no-rooms {
   display: flex;
   justify-content: center;
@@ -134,5 +141,157 @@ export default {
   border: 1px solid #ccc;
   border-radius: 5px;
   margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px;
+  }
+
+  .el-form-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+
+  .el-form-item label {
+    margin-bottom: 5px;
+  }
+
+  .el-button {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  p {
+    font-size: 14px;
+  }
+
+  .room-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-actions {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 5px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .el-button {
+    font-size: 12px;
+  }
+
+  .no-rooms {
+    font-size: 12px;
+  }
+}
+.room-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ccc;
+  margin-bottom: 5px;
+  background-color: #f9f9f9;
+}
+
+.room-item:hover {
+  background-color: #e9e9e9;
+}
+
+.no-rooms {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px;
+  }
+
+  .el-form-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 15px;
+  }
+
+  .el-form-item label {
+    margin-bottom: 5px;
+  }
+
+  .el-button {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  p {
+    font-size: 14px;
+  }
+
+  .room-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-actions {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding: 5px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .el-button {
+    font-size: 12px;
+  }
+
+  .no-rooms {
+    font-size: 12px;
+  }
+
+  /* 新增样式 */
+  .room-actions {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .room-actions .el-button {
+    width: 48%; /* 调整按钮宽度以适应一行显示 */
+    margin: 0 1%; /* 调整按钮之间的间距 */
+  }
 }
 </style>
