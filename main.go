@@ -71,7 +71,7 @@ func main() {
 			rooms[req.ID] = room
 			roomsMutex.Unlock()
 
-			c.JSON(http.StatusCreated, gin.H{"message": "Room created", "roomID": req.ID, "password": req.Password})
+			c.JSON(http.StatusCreated, gin.H{"message": "房间创建成功", "roomID": req.ID, "password": req.Password})
 		})
 
 		// 加入房间
@@ -122,7 +122,7 @@ func main() {
 			room.Clipboard = append(room.Clipboard, req.Content)
 			room.Mutex.Unlock()
 
-			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content saved!"})
+			c.JSON(http.StatusOK, gin.H{"message": "剪贴板已保存!"})
 		})
 
 		// 获取剪贴板内容
@@ -160,7 +160,7 @@ func main() {
 			room.Clipboard = []string{}
 			room.Mutex.Unlock()
 
-			c.JSON(http.StatusOK, gin.H{"message": "Clipboard content cleared!"})
+			c.JSON(http.StatusOK, gin.H{"message": "剪贴板已清除！"})
 		})
 
 		// 删除房间
@@ -207,7 +207,7 @@ func main() {
 		})
 
 		// 文件上传逻辑
-		api.POST("/rooms/:roomID/upload", services.UploadFile)
+		api.POST("/rooms/:roomID/upload", services.UploadFiles)
 		api.GET("/rooms/:roomID/files", services.ListFiles)
 	}
 

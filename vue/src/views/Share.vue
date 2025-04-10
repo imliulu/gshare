@@ -1,13 +1,13 @@
 <template>
   <div class="app-container">
-    <h1>共享剪贴板</h1>
+    <h1>{{ currentTitle }}</h1>
     <el-button type="primary" @click="backToIndex">返回首页</el-button>
     <el-form :model="form" label-width="100px">
       <el-form-item label="房间信息">
         <el-input v-model="displayRoomInfo" readonly></el-input>
       </el-form-item>
     </el-form>
-    <el-tabs v-model="activeTab">
+    <el-tabs v-model="activeTab" @tab-click="updateTitle">
       <el-tab-pane label="剪贴板共享" name="clipboard">
         <el-form :model="clipboardForm" label-width="100px">
           <el-form-item label="粘贴文本">
@@ -35,7 +35,8 @@
               :file-list="fileList"
               :auto-upload="false"
               :data="uploadData"
-              ref="upload">
+              ref="upload"
+              multiple> <!-- 添加 multiple 属性 -->
               <el-button slot="trigger" type="primary">选取文件</el-button>
               <el-button type="success" @click="submitUpload">上传到服务器</el-button>
             </el-upload>
@@ -65,13 +66,15 @@ export default {
         password: ''
       },
       activeTab: 'clipboard',
+      currentTitle: 'Local Transfer -- 剪贴板共享',
       clipboardForm: {
         content: ''
       },
       clipboardContents: [],
       fileForm: {},
       fileList: [],
-      files: []
+      files: [],
+      closeOnEsc: null // 用于存储事件监听器
     }
   },
   created() {
@@ -79,6 +82,12 @@ export default {
     this.form.password = this.$route.query.password || '123456' // 从路由参数中获取密码
     this.getClipboardContents()
     this.fetchFiles()
+    this.updateTitle() // 初始化标题
+  },
+  watch: {
+    activeTab() {
+      this.updateTitle()
+    }
   },
   computed: {
     apiUrl() {
@@ -136,19 +145,23 @@ export default {
     },
     handleChange(file, fileList) {
       this.fileList = fileList;
+      console.log('Selected Files:', fileList); // 打印文件列表
     },
     submitUpload() {
       const formData = new FormData();
       this.fileList.forEach(file => {
         formData.append('file', file.raw);
       });
+      console.log('FormData:', formData); // 打印 FormData
+      console.log('FormData Entries:', Array.from(formData.entries())); // 打印 FormData 的所有条目
+
       this.$api.post(`/rooms/${this.form.roomID}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
         .then(response => {
-          console.log(response);
+          console.log('Upload Response:', response);
           this.$message.success('文件上传成功');
           this.fetchFiles();
           this.$refs.upload.clearFiles();
@@ -164,13 +177,24 @@ export default {
             ...file,
             url: `http://10.20.10.241:8088${file.url}`
           }));
-          console.log(this.files); // 添加调试信息
+          console.log('Fetched Files:', this.files); // 打印文件列表
         })
         .catch(error => {
           this.$message.error('获取文件列表失败: ' + error.message);
         });
     },
     previewImage(url) {
+      const closeAlert = () => {
+        this.$msgbox.close();
+        document.removeEventListener('keydown', this.closeOnEsc);
+      };
+
+      this.closeOnEsc = (event) => {
+        if (event.key === 'Escape') {
+          closeAlert();
+        }
+      };
+
       this.$alert(`<img src="${url}" style="width: 100%; height: auto;" />`, '预览', {
         dangerouslyUseHTMLString: true,
         showConfirmButton: false,
@@ -178,10 +202,12 @@ export default {
         cancelButtonText: '关闭',
         callback: action => {
           if (action === 'cancel') {
-            // 可以在这里添加关闭后的处理逻辑
+            closeAlert();
           }
         }
       });
+
+      document.addEventListener('keydown', this.closeOnEsc);
     },
     downloadFile(url, name) {
       const link = document.createElement('a');
@@ -190,6 +216,13 @@ export default {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    },
+    updateTitle() {
+      if (this.activeTab === 'clipboard') {
+        this.currentTitle = 'Local Transfer -- 剪贴板共享';
+      } else if (this.activeTab === 'files') {
+        this.currentTitle = 'Local Transfer -- 文件共享';
+      }
     }
   }
 }

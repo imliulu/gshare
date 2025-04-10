@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <h1>Gshare-共享</h1>
+    <h1>Local Transfer --  房间管理</h1>
     <el-form :model="form" label-width="100px">
       <el-form-item label="创建房间">
         <el-input v-model="form.roomID" placeholder="请输入房间ID（可选）"></el-input>
