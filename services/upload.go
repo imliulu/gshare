@@ -2,13 +2,14 @@ package services
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 func UploadFiles(c *gin.Context) {
@@ -75,15 +76,15 @@ func UploadFiles(c *gin.Context) {
 }
 
 // 判断是否为图片类型
-func isImage(mimeType string) bool {
-	imageTypes := []string{"image/jpeg", "image/png", "image/gif"}
-	for _, t := range imageTypes {
-		if mimeType == t {
-			return true
-		}
-	}
-	return false
-}
+// func isImage(mimeType string) bool {
+// 	imageTypes := []string{"image/jpeg", "image/png", "image/gif"}
+// 	for _, t := range imageTypes {
+// 		if mimeType == t {
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }
 
 func ListFiles(c *gin.Context) {
 	roomID := c.Param("roomID")
